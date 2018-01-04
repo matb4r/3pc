@@ -2,10 +2,8 @@ package main
 
 import (
 	"log"
-
 	"github.com/streadway/amqp"
 	"os"
-
 	. "3pc/commons"
 )
 
