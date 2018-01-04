@@ -11,21 +11,19 @@ import (
 var N int      // number of cohorts
 var state int  // state of coordinator
 var agreed = 0 //number of cohorts that agreed
-var acked = 0  // number of cohorts that send ack
+var acked = 0  // number of cohorts that sent ack
 var conn *amqp.Connection
 var ch *amqp.Channel
 
 func initAmqp() {
 	conn, err := amqp.Dial("amqp://localhost:5672/")
 	FailOnError(err, "Failed to connect to RabbitMQ")
-
 	ch, err = conn.Channel()
 	FailOnError(err, "Failed to open a channel")
-	return
 }
 
 // queue for cohorts messages
-func initCoordQueue() (msgs <-chan amqp.Delivery) {
+func initCoordQueue() {
 	coordQueue, err := ch.QueueDeclare(
 		"coord", // name
 		false,   // durable
@@ -36,7 +34,7 @@ func initCoordQueue() (msgs <-chan amqp.Delivery) {
 	)
 	FailOnError(err, "Failed to declare a queue")
 
-	msgs, err = ch.Consume(
+	msgs, err := ch.Consume(
 		coordQueue.Name, // queue
 		"",              // consumer
 		true,            // auto-ack
@@ -53,8 +51,6 @@ func initCoordQueue() (msgs <-chan amqp.Delivery) {
 			receivedMsg(string(d.Body))
 		}
 	}()
-
-	return
 }
 
 // coord to cohorts publish-subscribe exchange

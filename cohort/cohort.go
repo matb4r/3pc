@@ -15,7 +15,6 @@ var coordQueue amqp.Queue
 func initAmqp() {
 	conn, err := amqp.Dial("amqp://localhost:5672/")
 	FailOnError(err, "Failed to connect to RabbitMQ")
-
 	ch, err = conn.Channel()
 	FailOnError(err, "Failed to open a channel")
 }
