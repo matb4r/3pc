@@ -79,11 +79,11 @@ func publishToCohorts(body string) {
 		})
 	FailOnError(err, "Failed to publish a message")
 
-	log.Printf(" [x] Sent %s", body)
+	log.Printf("- Sent: %s", body)
 }
 
 func receivedMsg(msg string) {
-	log.Printf("Received a message: %s", msg)
+	log.Printf("+ Received: %s", msg)
 
 	switch {
 	case state == Q && msg == TR_REQ:
@@ -108,6 +108,8 @@ func receivedMsg(msg string) {
 			publishToCohorts(COMMIT)
 		}
 	}
+
+	log.Printf("= %d", state)
 }
 
 // first arg is expected number of cohorts
@@ -119,9 +121,9 @@ func main() {
 	FailOnError(err, "Wrong program arg")
 	N = n
 
-	initAmqp()
 	defer conn.Close()
 	defer ch.Close()
+	initAmqp()
 	initCoordQueue()
 	initCoordExchange()
 

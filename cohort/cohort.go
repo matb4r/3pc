@@ -5,12 +5,17 @@ import (
 	"github.com/streadway/amqp"
 	"os"
 	. "3pc/commons"
+	"bufio"
+	"io/ioutil"
+	"strings"
 )
 
 var state int // state of cohort
 var conn *amqp.Connection
 var ch *amqp.Channel
 var coordQueue amqp.Queue
+var abortTransaction = false
+var canCommit chan bool
 
 func initAmqp() {
 	conn, err := amqp.Dial("amqp://localhost:5672/")
@@ -83,20 +88,32 @@ func initCoordExchange() {
 }
 
 func receivedMsg(msg string) {
-	log.Printf("Received a message: %s", msg)
+	log.Printf("+ Received: %s", msg)
 
 	switch {
 	case state == Q && msg == COMMIT_REQ:
-		state = W
-		sendToCoord(AGREE)
+		if abortTransaction {
+			state = A
+			sendToCoord(ABORT)
+		} else {
+			state = W
+			sendToCoord(AGREE)
+		}
 	case state == W && msg == ABORT:
 		state = A
+		canCommit <- false
 	case state == W && msg == PREPARE:
 		state = P
 		sendToCoord(ACK)
+	case state == P && msg == ABORT:
+		state = A
+		canCommit <- false
 	case state == P && msg == COMMIT:
 		state = C
+		canCommit <- true
 	}
+
+	log.Printf("= %d", state)
 }
 
 func sendToCoord(body string) {
@@ -109,24 +126,52 @@ func sendToCoord(body string) {
 			ContentType: "text/plain",
 			Body:        []byte(body),
 		})
-	log.Printf(" [x] Sent %s", body)
+	log.Printf("- Sent: %s", body)
 	FailOnError(err, "Failed to send a message")
 }
 
-// if first arg is 'T' then this coord send transaction request
-func main() {
+func readStdin() string {
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	FailOnError(err, "Failed to read an input")
+	input = strings.Replace(input, "\n", "", -1) // convert CRLF to LF
+	return input
+}
 
-	initAmqp()
+func action(input string) {
+	words := strings.Split(input, " ")
+	switch words[0] {
+	case "write":
+		writeToFile(words[1], words[2])
+	case "abort":
+		abortTransaction = true
+	}
+}
+
+func writeToFile(path string, text string) {
+	canCommit = make(chan bool)
+
+	sendToCoord(TR_REQ)
+
+	if <-canCommit {
+		err := ioutil.WriteFile(path, []byte(text), 0644)
+		FailOnError(err, "Failed to write to a file")
+		log.Printf("Write to %s success", path)
+	} else {
+		log.Printf("Write to %s aborted", path)
+	}
+}
+
+func main() {
 	defer conn.Close()
 	defer ch.Close()
+
+	initAmqp()
 	initCoordQueue()
 	initCoordExchange()
 
-	if len(os.Args) > 1 {
-		if os.Args[1] == "T" {
-			sendToCoord(TR_REQ)
-		}
-	}
+	input := readStdin()
+	action(input)
 
 	select {}
 }
