@@ -179,7 +179,6 @@ func main() {
 
 	defer conn.Close()
 	defer ch.Close()
-
 	initAmqp()
 	initCoordQueue()
 	initCoordExchange()
