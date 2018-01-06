@@ -6,8 +6,11 @@ import (
 	"os"
 	"strconv"
 	. "3pc/commons"
+	"fmt"
 )
 
+var url string
+var port string
 var N int      // number of cohorts
 var state int  // state of coordinator
 var agreed = 0 //number of cohorts that agreed
@@ -16,7 +19,7 @@ var conn *amqp.Connection
 var ch *amqp.Channel
 
 func initAmqp() {
-	conn, err := amqp.Dial("amqp://localhost:5672/")
+	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s/", url, port))
 	FailOnError(err, "Failed to connect to RabbitMQ")
 	ch, err = conn.Channel()
 	FailOnError(err, "Failed to open a channel")
@@ -112,14 +115,20 @@ func receivedMsg(msg string) {
 	log.Printf("= %d", state)
 }
 
-// first arg is expected number of cohorts
-func main() {
-	if len(os.Args) < 2 {
-		log.Fatalln("First argument should be a expected number of cohorts")
+// Args: url port numberOfCohorts
+func parseProgramArgs() {
+	if len(os.Args) < 3 {
+		log.Fatalln("Usage: url port numberOfCohorts")
 	}
-	n, err := strconv.Atoi(os.Args[1])
-	FailOnError(err, "Wrong program arg")
-	N = n
+	url = os.Args[1]
+	port = os.Args[2]
+	numberOfCohorts, err := strconv.Atoi(os.Args[3])
+	FailOnError(err, "Wrong program args")
+	N = numberOfCohorts
+}
+
+func main() {
+	parseProgramArgs()
 
 	defer conn.Close()
 	defer ch.Close()

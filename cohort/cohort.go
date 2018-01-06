@@ -8,8 +8,11 @@ import (
 	"bufio"
 	"io/ioutil"
 	"strings"
+	"fmt"
 )
 
+var url string
+var port string
 var state int // state of cohort
 var conn *amqp.Connection
 var ch *amqp.Channel
@@ -18,7 +21,7 @@ var abortTransaction = false
 var canCommit chan bool
 
 func initAmqp() {
-	conn, err := amqp.Dial("amqp://localhost:5672/")
+	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s/", url, port))
 	FailOnError(err, "Failed to connect to RabbitMQ")
 	ch, err = conn.Channel()
 	FailOnError(err, "Failed to open a channel")
@@ -142,7 +145,7 @@ func action(input string) {
 	words := strings.Split(input, " ")
 	switch words[0] {
 	case "write":
-		writeToFile(words[1], words[2])
+		writeToFile(words[1], strings.Join(words[2:], " "))
 	case "abort":
 		abortTransaction = true
 	}
@@ -162,7 +165,18 @@ func writeToFile(path string, text string) {
 	}
 }
 
+// Args: url port
+func parseProgramArgs() {
+	if len(os.Args) < 3 {
+		log.Fatalln("Usage: url port")
+	}
+	url = os.Args[1]
+	port = os.Args[2]
+}
+
 func main() {
+	parseProgramArgs()
+
 	defer conn.Close()
 	defer ch.Close()
 
