@@ -7,6 +7,7 @@ import (
 	"strconv"
 	. "github.com/matb4r/3pc/commons"
 	"fmt"
+	"time"
 )
 
 var url string
@@ -17,6 +18,10 @@ var agreed = 0 //number of cohorts that agreed
 var acked = 0  // number of cohorts that sent ack
 var conn *amqp.Connection
 var ch *amqp.Channel
+var timer *time.Timer
+var timeout time.Duration = 3
+var failure1 bool // simluate failure
+var failure2 bool // simulate failure
 
 func initAmqp() {
 	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s/", url, port))
@@ -92,22 +97,32 @@ func receivedMsg(msg string) {
 	case state == Q && msg == TR_REQ:
 		state = W
 		publishToCohorts(COMMIT_REQ)
+		timer = time.AfterFunc(time.Second*timeout, timeoutCallback)
 	case state == W && msg == AGREE:
 		agreed += 1
 		if agreed == N {
 			agreed = 0
 			state = P
+			if failure1 {
+				os.Exit(1)
+			}
 			publishToCohorts(PREPARE)
+			timer.Reset(time.Second * timeout)
 		}
 	case state == W && msg == ABORT:
 		agreed = 0
 		state = A
 		publishToCohorts(ABORT)
+		timer.Stop()
 	case state == P && msg == ACK:
 		acked += 1
 		if acked == N {
+			timer.Stop()
 			acked = 0
 			state = C
+			if failure2 {
+				os.Exit(1)
+			}
 			publishToCohorts(COMMIT)
 		}
 	}
@@ -117,14 +132,33 @@ func receivedMsg(msg string) {
 
 // Args: url port numberOfCohorts
 func parseProgramArgs() {
-	if len(os.Args) < 3 {
-		log.Fatalln("Usage: url port numberOfCohorts")
+	if len(os.Args) < 4 {
+		log.Fatalln("Usage: url port numberOfCohorts ['failure1' / 'failure2']")
 	}
 	url = os.Args[1]
 	port = os.Args[2]
 	numberOfCohorts, err := strconv.Atoi(os.Args[3])
 	FailOnError(err, "Wrong program args")
+
+	if len(os.Args) == 5 {
+		switch os.Args[4] {
+		case "failure1":
+			failure1 = true
+		case "failure2":
+			failure2 = true
+		}
+	}
 	N = numberOfCohorts
+}
+
+func timeoutCallback() {
+	if state == W || state == P {
+		log.Println("Timeout")
+		agreed = 0
+		state = A
+		publishToCohorts(ABORT)
+		os.Exit(1)
+	}
 }
 
 func main() {

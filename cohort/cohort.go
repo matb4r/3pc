@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"fmt"
+	"time"
 )
 
 var url string
@@ -19,6 +20,10 @@ var ch *amqp.Channel
 var coordQueue amqp.Queue
 var abortTransaction = false
 var canCommit chan bool
+var timer *time.Timer
+var timeout time.Duration = 3
+var failure1 bool // simulate failure
+var failure2 bool // simulate failure
 
 func initAmqp() {
 	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s/", url, port))
@@ -92,7 +97,7 @@ func initCoordExchange() {
 
 func receivedMsg(msg string) {
 	log.Printf("+ Received: %s", msg)
-
+	//bufio.NewReader(os.Stdin).ReadBytes('\n')
 	switch {
 	case state == Q && msg == COMMIT_REQ:
 		if abortTransaction {
@@ -100,20 +105,31 @@ func receivedMsg(msg string) {
 			sendToCoord(ABORT)
 		} else {
 			state = W
+			if failure1 {
+				os.Exit(1)
+			}
 			sendToCoord(AGREE)
+			timer = time.AfterFunc(time.Second*timeout, timeoutCallback)
 		}
 	case state == W && msg == ABORT:
 		state = A
 		canCommit <- false
+		timer.Stop()
 	case state == W && msg == PREPARE:
 		state = P
+		if failure2 {
+			os.Exit(1)
+		}
 		sendToCoord(ACK)
+		timer.Reset(time.Second * timeout)
 	case state == P && msg == ABORT:
 		state = A
 		canCommit <- false
+		timer.Stop()
 	case state == P && msg == COMMIT:
 		state = C
 		canCommit <- true
+		timer.Stop()
 	}
 
 	log.Printf("= %d", state)
@@ -133,6 +149,17 @@ func sendToCoord(body string) {
 	FailOnError(err, "Failed to send a message")
 }
 
+func timeoutCallback() {
+	log.Println("Timeout")
+	if state == W {
+		state = A
+		canCommit <- false
+	} else if state == P {
+		state = C
+		canCommit <- true
+	}
+}
+
 func readStdin() string {
 	reader := bufio.NewReader(os.Stdin)
 	input, err := reader.ReadString('\n')
@@ -148,6 +175,10 @@ func action(input string) {
 		writeToFile(words[1], strings.Join(words[2:], " "))
 	case "abort":
 		abortTransaction = true
+	case "failure1":
+		failure1 = true
+	case "failure2":
+		failure2 = true
 	}
 }
 
@@ -166,16 +197,31 @@ func writeToFile(path string, text string) {
 }
 
 // Args: url port
-func parseProgramArgs() {
+func parseConnectionArgs() {
 	if len(os.Args) < 3 {
-		log.Fatalln("Usage: url port")
+		log.Fatalln("Usage: url port ['write' path content / 'abort' / 'failure1' / 'failure2']")
 	}
 	url = os.Args[1]
 	port = os.Args[2]
 }
 
+func parseActionArgs() {
+	if len(os.Args) > 3 {
+		switch os.Args[3] {
+		case "write":
+			writeToFile(os.Args[4], strings.Join(os.Args[5:], " "))
+		case "abort":
+			abortTransaction = true
+		case "failure1":
+			failure1 = true
+		case "failure2":
+			failure2 = true
+		}
+	}
+}
+
 func main() {
-	parseProgramArgs()
+	parseConnectionArgs()
 
 	defer conn.Close()
 	defer ch.Close()
@@ -183,8 +229,7 @@ func main() {
 	initCoordQueue()
 	initCoordExchange()
 
-	input := readStdin()
-	action(input)
+	parseActionArgs()
 
 	select {}
 }
