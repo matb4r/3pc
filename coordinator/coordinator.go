@@ -5,7 +5,7 @@ import (
 	"github.com/streadway/amqp"
 	"os"
 	"strconv"
-	. "3pc/commons"
+	. "github.com/matb4r/3pc/commons"
 	"fmt"
 )
 

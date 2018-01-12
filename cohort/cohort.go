@@ -4,7 +4,7 @@ import (
 	"log"
 	"github.com/streadway/amqp"
 	"os"
-	. "3pc/commons"
+	. "github.com/matb4r/3pc/commons"
 	"bufio"
 	"io/ioutil"
 	"strings"
