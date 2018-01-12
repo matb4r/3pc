@@ -4,11 +4,11 @@ import "log"
 
 // states
 const (
-	Q int = iota
-	W
-	A
-	P
-	C
+	Q string = "Q"
+	W = "W"
+	A = "A"
+	P = "P"
+	C = "C"
 )
 
 // types of messages

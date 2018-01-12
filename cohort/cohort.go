@@ -14,7 +14,7 @@ import (
 
 var url string
 var port string
-var state int // state of cohort
+var state = Q // state of cohort
 var conn *amqp.Connection
 var ch *amqp.Channel
 var coordQueue amqp.Queue
@@ -132,7 +132,7 @@ func receivedMsg(msg string) {
 		timer.Stop()
 	}
 
-	log.Printf("= %d", state)
+	log.Printf("[%s]", state)
 }
 
 func sendToCoord(body string) {
@@ -196,7 +196,6 @@ func writeToFile(path string, text string) {
 	}
 }
 
-// Args: url port
 func parseConnectionArgs() {
 	if len(os.Args) < 3 {
 		log.Fatalln("Usage: url port ['write' path content / 'abort' / 'failure1' / 'failure2']")

@@ -13,7 +13,7 @@ import (
 var url string
 var port string
 var N int      // number of cohorts
-var state int  // state of coordinator
+var state = Q  // state of coordinator
 var agreed = 0 //number of cohorts that agreed
 var acked = 0  // number of cohorts that sent ack
 var conn *amqp.Connection
@@ -127,10 +127,9 @@ func receivedMsg(msg string) {
 		}
 	}
 
-	log.Printf("= %d", state)
+	log.Printf("[%s]", state)
 }
 
-// Args: url port numberOfCohorts
 func parseProgramArgs() {
 	if len(os.Args) < 4 {
 		log.Fatalln("Usage: url port numberOfCohorts ['failure1' / 'failure2']")
