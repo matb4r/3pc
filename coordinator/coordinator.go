@@ -1,11 +1,11 @@
 package main
 
 import (
-	"log"
+	. "github.com/matb4r/3pc/commons"
 	"github.com/streadway/amqp"
+	"log"
 	"os"
 	"strconv"
-	. "github.com/matb4r/3pc/commons"
 	"fmt"
 	"time"
 )
@@ -97,7 +97,7 @@ func receivedMsg(msg string) {
 	case state == Q && msg == TR_REQ:
 		state = W
 		publishToCohorts(COMMIT_REQ)
-		timer = time.AfterFunc(time.Second*timeout, timeoutCallback)
+		timer = time.AfterFunc(time.Second*timeout, timeoutFunc)
 	case state == W && msg == AGREE:
 		agreed += 1
 		if agreed == N {
@@ -150,7 +150,7 @@ func parseProgramArgs() {
 	N = numberOfCohorts
 }
 
-func timeoutCallback() {
+func timeoutFunc() {
 	if state == W || state == P {
 		log.Println("Timeout")
 		agreed = 0

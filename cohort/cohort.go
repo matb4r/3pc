@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
-	"github.com/streadway/amqp"
-	"os"
 	. "github.com/matb4r/3pc/commons"
+	"github.com/streadway/amqp"
+	"log"
+	"os"
 	"bufio"
 	"io/ioutil"
 	"strings"
@@ -109,7 +109,7 @@ func receivedMsg(msg string) {
 				os.Exit(1)
 			}
 			sendToCoord(AGREE)
-			timer = time.AfterFunc(time.Second*timeout, timeoutCallback)
+			timer = time.AfterFunc(time.Second*timeout, timeoutFunc)
 		}
 	case state == W && msg == ABORT:
 		state = A
@@ -149,7 +149,7 @@ func sendToCoord(body string) {
 	FailOnError(err, "Failed to send a message")
 }
 
-func timeoutCallback() {
+func timeoutFunc() {
 	log.Println("Timeout")
 	if state == W {
 		state = A
@@ -166,20 +166,6 @@ func readStdin() string {
 	FailOnError(err, "Failed to read an input")
 	input = strings.Replace(input, "\n", "", -1) // convert CRLF to LF
 	return input
-}
-
-func action(input string) {
-	words := strings.Split(input, " ")
-	switch words[0] {
-	case "write":
-		writeToFile(words[1], strings.Join(words[2:], " "))
-	case "abort":
-		abortTransaction = true
-	case "failure1":
-		failure1 = true
-	case "failure2":
-		failure2 = true
-	}
 }
 
 func writeToFile(path string, text string) {
