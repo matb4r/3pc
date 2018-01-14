@@ -162,7 +162,7 @@ func timeoutFunc() {
 		agreed = 0
 		state = A
 		publishToCohorts(ABORT)
-		os.Exit(1)
+		exitProgram()
 	}
 }
 

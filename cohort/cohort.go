@@ -126,7 +126,6 @@ func receivedMsg(msg string) {
 	case state == P && msg == ABORT:
 		state = A
 		registerCommit(false)
-		timer.Stop()
 		exitProgram()
 	case state == P && msg == COMMIT:
 		state = C
@@ -169,11 +168,14 @@ func timeoutFunc() {
 	log.Println("Timeout")
 	if state == W {
 		state = A
-		canCommit <- false
+		registerCommit(false)
 	} else if state == P {
 		state = C
-		canCommit <- true
+		registerCommit(true)
 	}
+	log.Printf("[%s]", state)
+	os.Exit(0)
+
 }
 
 func readStdin() string {
