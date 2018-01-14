@@ -113,21 +113,27 @@ func receivedMsg(msg string) {
 		agreed = 0
 		state = A
 		publishToCohorts(ABORT)
-		timer.Stop()
+		exitProgram()
 	case state == P && msg == ACK:
 		acked += 1
 		if acked == N {
-			timer.Stop()
 			acked = 0
 			state = C
 			if failure2 {
 				os.Exit(1)
 			}
 			publishToCohorts(COMMIT)
+			exitProgram()
 		}
 	}
 
 	log.Printf("[%s]", state)
+}
+
+func exitProgram() {
+	timer.Stop()
+	log.Printf("[%s]", state)
+	os.Exit(0)
 }
 
 func parseProgramArgs() {

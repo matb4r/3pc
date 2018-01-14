@@ -22,6 +22,7 @@ var abortTransaction = false
 var canCommit chan bool
 var timer *time.Timer
 var timeout time.Duration = 3
+var writing bool  // is this cohort wants to write to a file
 var failure1 bool // simulate failure
 var failure2 bool // simulate failure
 
@@ -113,8 +114,8 @@ func receivedMsg(msg string) {
 		}
 	case state == W && msg == ABORT:
 		state = A
-		canCommit <- false
-		timer.Stop()
+		registerCommit(false)
+		exitProgram()
 	case state == W && msg == PREPARE:
 		state = P
 		if failure2 {
@@ -124,15 +125,30 @@ func receivedMsg(msg string) {
 		timer.Reset(time.Second * timeout)
 	case state == P && msg == ABORT:
 		state = A
-		canCommit <- false
+		registerCommit(false)
 		timer.Stop()
+		exitProgram()
 	case state == P && msg == COMMIT:
 		state = C
-		canCommit <- true
-		timer.Stop()
+		registerCommit(true)
+		exitProgram()
 	}
 
 	log.Printf("[%s]", state)
+}
+
+func registerCommit(doCommit bool) {
+	if writing {
+		canCommit <- doCommit
+	}
+}
+
+func exitProgram() {
+	timer.Stop()
+	if !writing {
+		log.Printf("[%s]", state)
+		os.Exit(0)
+	}
 }
 
 func sendToCoord(body string) {
@@ -170,16 +186,18 @@ func readStdin() string {
 
 func writeToFile(path string, text string) {
 	canCommit = make(chan bool)
+	writing = true
 
 	sendToCoord(TR_REQ)
 
 	if <-canCommit {
 		err := ioutil.WriteFile(path, []byte(text), 0644)
 		FailOnError(err, "Failed to write to a file")
-		log.Printf("Write to %s success", path)
+		log.Printf("Write to \"%s\" to %s success", text, path)
 	} else {
 		log.Printf("Write to %s aborted", path)
 	}
+	os.Exit(0)
 }
 
 func parseConnectionArgs() {
