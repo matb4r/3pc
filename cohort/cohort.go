@@ -169,13 +169,12 @@ func timeoutFunc() {
 	if state == W {
 		state = A
 		registerCommit(false)
+		os.Exit(0)
 	} else if state == P {
 		state = C
 		registerCommit(true)
 	}
 	log.Printf("[%s]", state)
-	os.Exit(0)
-
 }
 
 func readStdin() string {
