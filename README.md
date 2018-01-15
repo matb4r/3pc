@@ -45,8 +45,3 @@ docker run -it --network=host matb4r:coordinator 192.168.0.17 5672 1 failure2
 ```
 docker run -it --network=host matb4r:cohort 192.168.0.17 5672 write /tmp/file.txt hello world
 ```
-
-### RabbitMQ server config:
-```
-echo "[{rabbit, [{loopback_users, []}]}]." | sudo tee /etc/rabbitmq/rabbitmq.config > /dev/null
-```
