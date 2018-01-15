@@ -39,11 +39,11 @@ docker build -t "matb4r:cohort" cohort
 ```
 
 ```
-docker run -it matb4r:coordinator 172.17.0.1 5672 1 failure2
+docker run -it --network=host matb4r:coordinator 192.168.0.17 5672 1 failure2
 ```
 
 ```
-docker run -it matb4r:cohort 172.17.0.1 5672 write /tmp/file.txt hello world
+docker run -it --network=host matb4r:cohort 192.168.0.17 5672 write /tmp/file.txt hello world
 ```
 
 ### RabbitMQ server config:
