@@ -173,6 +173,9 @@ func timeoutFunc() {
 	} else if state == P {
 		state = C
 		registerCommit(true)
+		if !writing {
+			os.Exit(0)
+		}
 	}
 	log.Printf("[%s]", state)
 }

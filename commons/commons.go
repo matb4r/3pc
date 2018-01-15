@@ -5,10 +5,10 @@ import "log"
 // states
 const (
 	Q string = "Q"
-	W = "W"
-	A = "A"
-	P = "P"
-	C = "C"
+	W        = "W"
+	A        = "A"
+	P        = "P"
+	C        = "C"
 )
 
 // types of messages
