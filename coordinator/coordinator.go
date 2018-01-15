@@ -19,7 +19,7 @@ var acked = 0  // number of cohorts that sent ack
 var conn *amqp.Connection
 var ch *amqp.Channel
 var timer *time.Timer
-var timeout time.Duration = 3
+var timeout time.Duration = 10
 var failure1 bool // simluate failure
 var failure2 bool // simulate failure
 

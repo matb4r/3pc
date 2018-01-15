@@ -21,7 +21,7 @@ var coordQueue amqp.Queue
 var abortTransaction = false
 var canCommit chan bool
 var timer *time.Timer
-var timeout time.Duration = 3
+var timeout time.Duration = 10
 var writing bool  // is this cohort wants to write to a file
 var failure1 bool // simulate failure
 var failure2 bool // simulate failure
