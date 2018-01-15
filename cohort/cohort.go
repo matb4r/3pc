@@ -98,7 +98,6 @@ func initCoordExchange() {
 
 func receivedMsg(msg string) {
 	log.Printf("+ Received: %s", msg)
-	//bufio.NewReader(os.Stdin).ReadBytes('\n')
 	switch {
 	case state == Q && msg == COMMIT_REQ:
 		if abortTransaction {
